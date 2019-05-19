@@ -20,7 +20,7 @@ class Pokemon(Model):
     Image = StringType()
     Varieties = ListType(DecimalType)
 
-    def __init__(self, data_stats,data_varaities):
+    def __init__(self, data_stats = None, data_varaities = None, id = None):
         super(Pokemon, self).__init__()
         Stats = data_stats['stats']
 
@@ -37,6 +37,8 @@ class Pokemon(Model):
         self.Image = "https://img.pokemondb.net/artwork/{}.jpg".format(self.Name)
         if data_varaities:
             self.Varieties = [i['pokemon']['url'].split("/")[-2] for i in data_varaities["varieties"]]
+
+
 
 
 class PokemonFetch:
@@ -59,7 +61,7 @@ class PokemonFetch:
 
 async def main():
     pf = PokemonFetch()
-    pok = await pf.get_pokemon_id(10036)
+    pok = await pf.get_pokemon_id(10090)
     print(pok.items())
 
 if __name__ == "__main__":
