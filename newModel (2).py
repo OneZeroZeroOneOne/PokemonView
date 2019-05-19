@@ -21,18 +21,18 @@ class Pokemon(Model):
 
 
 
-    def __init__(self, data,data_varaities):
-        Stats = data['stats']
-        self.ID = data['id']
-        self.Name = data["name"]
-        self.Weight = data["weight"]
+    def __init__(self, data_stats,data_varaities):
+        Stats = data_stats['stats']
+        self.ID = data_stats['id']
+        self.Name = data_stats["name"]
+        self.Weight = data_stats["weight"]
         self.HP =  Stats[5]['base_stat']
         self.Attack =  Stats[4]['base_stat']
         self.Defense =  Stats[3]['base_stat']
         self.Speed =  Stats[0]['base_stat']
         self.SpecialAttack = Stats[2]['base_stat']
         self.SpecialDefense = Stats[1]['base_stat']
-        self.Types = data["types"]
+        self.Types = data_stats["types"]
         self.Image = "Pisia"
         self.Varieties = data_varaities["varieties"]
         #self.var = data['varieties']
@@ -48,10 +48,10 @@ class PokemonFetch:
     async def get_pokemon_id(self, id):
         async with aiohttp.ClientSession() as session:
             html = await self.fetch(session, self.url_pok_stats.format(id))
-            data = json.loads(html)
+            data_stats = json.loads(html)
             data_varaities = await self.fetch(session, self.url_pok_varaites.format(id))
             data_varaities = json.loads(data_varaities)
-            return Pokemon(data , data_varaities)
+            return Pokemon(data_stats , data_varaities)
 
 async def main():
     pf = PokemonFetch()
