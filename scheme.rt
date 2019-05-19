@@ -1,0 +1,13 @@
+ID: int
+Name: string
+Weight: int
+Stats:
+    HP: int
+    Attack: int
+    Defense: int
+    Speed: int
+    SpecialAttack: int
+    SpecialDefense: int
+Types: [list of int]
+Image: string
+Varieties: https://pokeapi.co/api/v2/pokemon-species/ІД_покемона/ [list of int]
