@@ -1,7 +1,7 @@
 # coding=utf8
 import aiohttp
 import asyncio
-import json
+import ujson as json
 from schematics.models import Model
 from schematics.types import StringType, URLType, DecimalType, ListType
 
@@ -34,28 +34,31 @@ class Pokemon(Model):
         self.SpecialDefense = Stats[1]['base_stat']
         self.Types = [i['type']['name'] for i in data_stats["types"]]
         self.Image = "Pisia"
-        self.Varieties = [i['pokemon']['url'].split("/")[-2] for i in data_varaities["varieties"]]
+        if data_varaities:
+            self.Varieties = [i['pokemon']['url'].split("/")[-2] for i in data_varaities["varieties"]]
         #self.var = data['varieties']
 
 class PokemonFetch:
     def __init__(self):
         self.url_pok_stats = "https://pokeapi.co/api/v2/pokemon/{}/"
         self.url_pok_varaites = 'https://pokeapi.co/api/v2/pokemon-species/{}/'
+
     async def fetch(self, session, url):
         async with session.get(url) as response:
-            return await response.text()
+            if response.status == 200:
+                return await response.json()
+            else:
+                return None
 
     async def get_pokemon_id(self, id):
         async with aiohttp.ClientSession() as session:
-            html = await self.fetch(session, self.url_pok_stats.format(id))
-            data_stats = json.loads(html)
+            data_stats = await self.fetch(session, self.url_pok_stats.format(id))
             data_varaities = await self.fetch(session, self.url_pok_varaites.format(id))
-            data_varaities = json.loads(data_varaities)
             return Pokemon(data_stats , data_varaities)
 
 async def main():
     pf = PokemonFetch()
-    pok = await pf.get_pokemon_id(6)
+    pok = await pf.get_pokemon_id(10036)
     print(pok.items())
 
 if __name__ == "__main__":
