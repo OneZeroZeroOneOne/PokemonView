@@ -5,6 +5,20 @@ import ujson as json
 from schematics.models import Model
 from schematics.types import StringType, URLType, DecimalType, ListType
 
+pokemon_description = """*Имя покемона:* {0}
+*В общем:* {1}
+*Атака:* {2}
+*HP:* {3}
+*Защита:* {4}
+*Типы*: {5}
+*Доп.Атк:* {6}
+*Доп.Защ:* {7}
+*Скорость:* {8}
+*Поколение:* {9}
+*Легендарность:* {10}
+
+*ID:* {11}"""
+
 class Pokemon(Model):
     FatherID = DecimalType()
     ID = DecimalType()
@@ -20,7 +34,7 @@ class Pokemon(Model):
     Image = StringType()
     Varieties = ListType(DecimalType)
 
-    def __init__(self, data_stats = None, data_varaities = None, id = None):
+    def __init__(self, data_stats = None, data_varaities = None):
         super(Pokemon, self).__init__()
         Stats = data_stats['stats']
 
@@ -36,33 +50,47 @@ class Pokemon(Model):
         self.Types = [i['type']['name'] for i in data_stats["types"]]
         self.Image = "https://img.pokemondb.net/artwork/{}.jpg".format(self.Name)
         if data_varaities:
-            self.Varieties = [i['pokemon']['url'].split("/")[-2] for i in data_varaities["varieties"]]
+            self.Varieties = [i['pokemon']['url'].split("/")[-2] for i in data_varaities["varieties"]][1:]
 
+    async def GetForms(self):
+        forms = []
+        if self.Varieties:
+            for i in self.Varieties:
+                forms.append(await PokemonFetch.get_pokemon_id(i))
 
+        return forms
 
+    def ToString(self):
+        #print(pokemon_description)
+        return pokemon_description.format(self.Name, '123', self.Attack,
+        self.HP, self.Defense, ', '.join(self.Types),
+        self.SpecialAttack, self.SpecialDefense, self.Speed,
+        'володя дороби поколеніє', 'ВОЛОДЯ ДОРОБИ ЛЕГЕНДАРНОСТЬ', self.ID)
 
 class PokemonFetch:
-    def __init__(self):
-        self.url_pok_stats = "https://pokeapi.co/api/v2/pokemon/{}/"
-        self.url_pok_varaites = 'https://pokeapi.co/api/v2/pokemon-species/{}/'
+    url_pok_stats = "https://pokeapi.co/api/v2/pokemon/{}/"
+    url_pok_varaites = 'https://pokeapi.co/api/v2/pokemon-species/{}/'
 
-    async def fetch(self, session, url):
+    async def fetch(session, url):
         async with session.get(url) as response:
             if response.status == 200:
                 return await response.json()
             else:
                 return None
 
-    async def get_pokemon_id(self, id):
+    @staticmethod
+    async def get_pokemon_id(id):
         async with aiohttp.ClientSession() as session:
-            data_stats = await self.fetch(session, self.url_pok_stats.format(id))
-            data_varaities = await self.fetch(session, self.url_pok_varaites.format(id))
+            data_stats = await PokemonFetch.fetch(session, PokemonFetch.url_pok_stats.format(id))
+            data_varaities = await PokemonFetch.fetch(session, PokemonFetch.url_pok_varaites.format(id))
             return Pokemon(data_stats , data_varaities)
 
 async def main():
-    pf = PokemonFetch()
-    pok = await pf.get_pokemon_id(10090)
-    print(pok.items())
+    pok = await PokemonFetch.get_pokemon_id(6)
+    print(pok.ToString())
+    pok_forms = await pok.GetForms()
+    for new_pokemon in pok_forms:
+        print(new_pokemon.ToString())
 
 if __name__ == "__main__":
     loop = asyncio.get_event_loop()
