@@ -6,6 +6,7 @@ from schematics.models import Model
 from schematics.types import StringType, URLType, DecimalType, ListType
 
 class Pokemon(Model):
+    FatherID = DecimalType()
     ID = DecimalType()
     Name = StringType()
     Weight = DecimalType()
@@ -33,10 +34,10 @@ class Pokemon(Model):
         self.SpecialAttack = Stats[2]['base_stat']
         self.SpecialDefense = Stats[1]['base_stat']
         self.Types = [i['type']['name'] for i in data_stats["types"]]
-        self.Image = "Pisia"
+        self.Image = "https://img.pokemondb.net/artwork/{}.jpg".format(self.Name)
         if data_varaities:
             self.Varieties = [i['pokemon']['url'].split("/")[-2] for i in data_varaities["varieties"]]
-        #self.var = data['varieties']
+
 
 class PokemonFetch:
     def __init__(self):
