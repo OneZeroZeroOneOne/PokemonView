@@ -19,10 +19,10 @@ class Pokemon(Model):
     Image = StringType()
     Varieties = ListType(DecimalType)
 
-
-
     def __init__(self, data_stats,data_varaities):
+        super(Pokemon, self).__init__()
         Stats = data_stats['stats']
+
         self.ID = data_stats['id']
         self.Name = data_stats["name"]
         self.Weight = data_stats["weight"]
@@ -32,9 +32,9 @@ class Pokemon(Model):
         self.Speed =  Stats[0]['base_stat']
         self.SpecialAttack = Stats[2]['base_stat']
         self.SpecialDefense = Stats[1]['base_stat']
-        self.Types = data_stats["types"]
+        self.Types = [i['type']['name'] for i in data_stats["types"]]
         self.Image = "Pisia"
-        self.Varieties = data_varaities["varieties"]
+        self.Varieties = [i['pokemon']['url'].split("/")[-2] for i in data_varaities["varieties"]]
         #self.var = data['varieties']
 
 class PokemonFetch:
@@ -55,11 +55,9 @@ class PokemonFetch:
 
 async def main():
     pf = PokemonFetch()
-    pok = await pf.get_pokemon_id(4)
-    print(pok.ID)
-    print(pok.Name)
-if __name__ == "__main__":
-    main()
+    pok = await pf.get_pokemon_id(6)
+    print(pok.items())
 
-loop = asyncio.get_event_loop()
-loop.run_until_complete(main())
+if __name__ == "__main__":
+    loop = asyncio.get_event_loop()
+    loop.run_until_complete(main())
