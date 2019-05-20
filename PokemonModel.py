@@ -99,8 +99,5 @@ class PokemonFetch:
     @staticmethod
     @cached(key_builder = my_key_builder)
     async def get_pokemon_list(start_id):
-        pok_list = []
-        for i in range(start_id, start_id+6, 1):
-            pok_list.append(await PokemonFetch.get_pokemon_id(i))
-
-        return pok_list
+        task_list = asyncio.gather(*[PokemonFetch.get_pokemon_id(i) for i in range(start_id, start_id+6, 1)])
+        return await task_list
