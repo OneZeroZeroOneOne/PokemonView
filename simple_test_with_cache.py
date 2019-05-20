@@ -2,7 +2,6 @@ import asyncio
 from PokemonModel import *
 
 async def main():
-
     start_time = time.time()
     pok_count = 0
     pok = await PokemonFetch.get_pokemon_id(1)

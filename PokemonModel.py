@@ -103,10 +103,9 @@ class PokemonFetch:
             #print("Got value! -> {}".format(value))
             poks[int(value.ID)-start_id] = value#.append(value)
 
-        return poks[1:]
+        return poks
 
     def get_pokemon_id(pokemon):
-        print(pokemon.ID)
         return pokemon.ID
 
     def key_builder_id(*args):
@@ -114,14 +113,19 @@ class PokemonFetch:
 
     @staticmethod
     @cached(key_builder = key_builder_id, namespace = "get_pokemon_id")
-    async def get_pokemon_id(id, result_queue = None):
+    async def get_pokemon_id(id):
         async with aiohttp.ClientSession() as session:
             data_stats = await PokemonFetch.fetch(session, PokemonFetch.url_pok_stats.format(id))
             data_varaities = await PokemonFetch.fetch(session, PokemonFetch.url_pok_varaites.format(id))
-            if result_queue:
-                await result_queue.put(Pokemon(data_stats, data_varaities))
-            else:
-                return Pokemon(data_stats, data_varaities)
+            return Pokemon(data_stats, data_varaities)
+
+    @staticmethod
+    @cached(key_builder = key_builder_id, namespace = "_get_pokemon_id")
+    async def _get_pokemon_id(id, result_queue):
+        async with aiohttp.ClientSession() as session:
+            data_stats = await PokemonFetch.fetch(session, PokemonFetch.url_pok_stats.format(id))
+            data_varaities = await PokemonFetch.fetch(session, PokemonFetch.url_pok_varaites.format(id))
+            await result_queue.put(Pokemon(data_stats, data_varaities))
 
     @staticmethod
     @cached(key_builder = key_builder_id, namespace = "get_pokemon_list")
@@ -129,9 +133,9 @@ class PokemonFetch:
         result_queue = asyncio.Queue()
         reader_future = asyncio.ensure_future(PokemonFetch.result_reader(result_queue, start_id), loop=asyncio.get_running_loop())
 
-        async with asyncpool.AsyncPool(asyncio.get_running_loop(), num_workers=6, name="GetPokemonListPool",
+        async with asyncpool.AsyncPool(asyncio.get_running_loop(), num_workers=config.pokemons_per_page, name="GetPokemonListPool",
                                 logger=logging.getLogger("ExamplePool"),
-                                worker_co=PokemonFetch.get_pokemon_id, max_task_time=300,
+                                worker_co=PokemonFetch._get_pokemon_id, max_task_time=300,
                                 log_every_n=10) as pool:
             for i in range(start_id, start_id + config.pokemons_per_page, 1):
                 await pool.push(i, result_queue)
