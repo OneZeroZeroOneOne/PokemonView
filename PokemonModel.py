@@ -95,3 +95,15 @@ class PokemonFetch:
             data_stats = await PokemonFetch.fetch(session, PokemonFetch.url_pok_stats.format(id))
             data_varaities = await PokemonFetch.fetch(session, PokemonFetch.url_pok_varaites.format(id))
             return Pokemon(data_stats , data_varaities)
+
+    @staticmethod
+    @cached(key_builder = my_key_builder)
+    async def get_pokemon_list(start_id):
+        pok_list = []
+        async with aiohttp.ClientSession() as session:
+            for i in range(start_id, start_id+6, 1):
+                data_stats = await PokemonFetch.fetch(session, PokemonFetch.url_pok_stats.format(i))
+                data_varaities = await PokemonFetch.fetch(session, PokemonFetch.url_pok_varaites.format(i))
+                pok_list.append(Pokemon(data_stats , data_varaities))
+
+        return pok_list
