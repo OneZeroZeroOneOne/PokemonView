@@ -2,6 +2,11 @@
 import aiohttp
 import asyncio
 import ujson as json
+import time
+
+from aiocache import cached
+from aiocache.serializers import PickleSerializer
+
 from schematics.models import Model
 from schematics.types import StringType, URLType, DecimalType, ListType
 
@@ -61,7 +66,6 @@ class Pokemon(Model):
         return forms
 
     def ToString(self):
-        #print(pokemon_description)
         return pokemon_description.format(self.Name, '123', self.Attack,
         self.HP, self.Defense, ', '.join(self.Types),
         self.SpecialAttack, self.SpecialDefense, self.Speed,
@@ -78,7 +82,9 @@ class PokemonFetch:
             else:
                 return None
 
+
     @staticmethod
+    @cached(key="get_pokemon", namespace="main")
     async def get_pokemon_id(id):
         async with aiohttp.ClientSession() as session:
             data_stats = await PokemonFetch.fetch(session, PokemonFetch.url_pok_stats.format(id))
@@ -86,11 +92,23 @@ class PokemonFetch:
             return Pokemon(data_stats , data_varaities)
 
 async def main():
+    start_time = time.time()
     pok = await PokemonFetch.get_pokemon_id(6)
     print(pok.ToString())
     pok_forms = await pok.GetForms()
     for new_pokemon in pok_forms:
         print(new_pokemon.ToString())
+
+    print("Времени понадобилось для первого вызова {}".format(time.time() - start_time))
+
+    start_time = time.time()
+    pok = await PokemonFetch.get_pokemon_id(6)
+    print(pok.ToString())
+    pok_forms = await pok.GetForms()
+    for new_pokemon in pok_forms:
+        print(new_pokemon.ToString())
+
+    print("Времени понадобилось для второго вызова {}".format(time.time() - start_time))
 
 if __name__ == "__main__":
     loop = asyncio.get_event_loop()
