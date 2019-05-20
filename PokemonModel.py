@@ -25,18 +25,17 @@ pokemon_description = """*Имя покемона:* {0}
 *ID:* {11}"""
 
 class Pokemon(Model):
-    FatherID = DecimalType()
-    ID = DecimalType()
-    Name = StringType()
-    Weight = DecimalType()
-    HP = DecimalType()
-    Attack = DecimalType()
-    Defense = DecimalType()
-    Speed = DecimalType()
-    SpecialAttack = DecimalType()
-    SpecialDefense = DecimalType()
+    ID = DecimalType(required = True)
+    Name = StringType(required = True)
+    Weight = DecimalType(required = True)
+    HP = DecimalType(required = True)
+    Attack = DecimalType(required = True)
+    Defense = DecimalType(required = True)
+    Speed = DecimalType(required = True)
+    SpecialAttack = DecimalType(required = True)
+    SpecialDefense = DecimalType(required = True)
     Types = ListType(StringType)
-    Image = StringType()
+    Image = StringType(required = True)
     Varieties = ListType(DecimalType)
 
     def __init__(self, data_stats = None, data_varaities = None):
@@ -56,6 +55,9 @@ class Pokemon(Model):
         self.Image = "https://img.pokemondb.net/artwork/{}.jpg".format(self.Name)
         if data_varaities:
             self.Varieties = [i['pokemon']['url'].split("/")[-2] for i in data_varaities["varieties"]][1:]
+        else:
+            self.Varieties = []
+        self.validate()
 
     async def GetForms(self):
         forms = []
