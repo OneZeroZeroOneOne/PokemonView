@@ -1,7 +1,7 @@
 # coding=utf8
 import aiohttp
 import asyncio
-import ujson as json
+import json
 import time
 
 from aiocache import cached
