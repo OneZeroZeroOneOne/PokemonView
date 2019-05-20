@@ -6,6 +6,7 @@ import time
 import logging
 
 import asyncpool
+import config
 
 from aiocache import cached
 from aiocache.serializers import PickleSerializer
@@ -74,7 +75,7 @@ class Pokemon(Model):
         return pokemon_description.format(self.Name, '123', self.Attack,
         self.HP, self.Defense, ', '.join(self.Types),
         self.SpecialAttack, self.SpecialDefense, self.Speed,
-        'володя дороби поколеніє', 'ВОЛОДЯ ДОРОБИ ЛЕГЕНДАРНОСТЬ', self.ID)
+        'володя дороби поколеніє', 'ВОЛО', self.ID)
 
     def __str__(self):
         return "Pokemon ID: {}".format(self.ID)
@@ -94,7 +95,7 @@ class PokemonFetch:
                 return None
 
     async def result_reader(queue, start_id):
-        poks = [None for i in range(0, 6, 1)]
+        poks = [None for i in range(0, config.pokemons_per_page, 1)]
         while True:
             value = await queue.get()
             if value is None:
@@ -132,7 +133,7 @@ class PokemonFetch:
                                 logger=logging.getLogger("ExamplePool"),
                                 worker_co=PokemonFetch.get_pokemon_id, max_task_time=300,
                                 log_every_n=10) as pool:
-            for i in range(start_id, start_id + 6, 1):
+            for i in range(start_id, start_id + config.pokemons_per_page, 1):
                 await pool.push(i, result_queue)
 
         await result_queue.put(None)

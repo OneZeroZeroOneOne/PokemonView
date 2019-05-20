@@ -33,13 +33,13 @@ async def get_pokemon_varieties_keyboard(pok_forms_mid) -> types.InlineKeyboardM
     #токо в оцьой хуйны -->
     varieties_forms = await pok_forms_mid.GetForms()
     print(varieties_forms)
-    weeklist = list()
+    slist = list()
     markup =  types.InlineKeyboardMarkup()
+    markup.add(types.InlineKeyboardButton("Возможные трансформации:", callback_data ="s"))
     for i in varieties_forms[1:]:
-        weeklist.append(InlineKeyboardButton("{}".forms(i.Name), callback_data = pokemon_cb.new(id=i.ID, action='view')))
-        markup.add(InlineKeyboardButton("Возможные трансформации:", callback_data =""))
-    markup.row(weeklist)
-    markup.add(InlineKeyboardButton("Возможные еволюции:", callback_data =""))
+        slist.append(types.InlineKeyboardButton("{}".forms(i.Name), callback_data = pokemon_cb.new(id=i.ID, action='view')))
+    markup.row(*slist)
+    markup.add(types.InlineKeyboardButton("Возможные еволюции:", callback_data ="s"))
     return markup
 
 
@@ -60,6 +60,7 @@ async def get_pokemon_list_keyboard(start_pok_id) -> types.InlineKeyboardMarkup:
 
     markup = types.InlineKeyboardMarkup()
     pokes = await PokemonFetch.get_pokemon_list(start_pok_id)
+    print(*pokes)
     for i in pokes:
         markup.add(
         types.InlineKeyboardButton(
