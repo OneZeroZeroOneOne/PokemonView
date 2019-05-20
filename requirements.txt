@@ -1,0 +1,6 @@
+schematics
+ujson
+msgpack
+aiocache
+aiohttp
+aioredis
