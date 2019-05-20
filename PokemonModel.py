@@ -84,7 +84,7 @@ class PokemonFetch:
 
 
     @staticmethod
-    @cached(key="get_pokemon", namespace="main")
+    @cached()
     async def get_pokemon_id(id):
         async with aiohttp.ClientSession() as session:
             data_stats = await PokemonFetch.fetch(session, PokemonFetch.url_pok_stats.format(id))

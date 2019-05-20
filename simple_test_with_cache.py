@@ -1,22 +1,24 @@
 import asyncio
-from
+from PokemonModel import *
 
 async def main():
     start_time = time.time()
-    pok = await PokemonFetch.get_pokemon_id(6)
-    print(pok.ToString())
-    pok_forms = await pok.GetForms()
-    for new_pokemon in pok_forms:
-        print(new_pokemon.ToString())
+    for i in range(1, 10, 1):
+        pok = await PokemonFetch.get_pokemon_id(i)
+        print(pok.ToString())
+        pok_forms = await pok.GetForms()
+        for new_pokemon in pok_forms:
+            print(new_pokemon.ToString())
 
     print("Времени понадобилось для первого вызова {}".format(time.time() - start_time))
 
     start_time = time.time()
-    pok = await PokemonFetch.get_pokemon_id(6)
-    print(pok.ToString())
-    pok_forms = await pok.GetForms()
-    for new_pokemon in pok_forms:
-        print(new_pokemon.ToString())
+    for i in range(1, 10, 1):
+        pok = await PokemonFetch.get_pokemon_id(i)
+        print(pok.ToString())
+        pok_forms = await pok.GetForms()
+        for new_pokemon in pok_forms:
+            print(new_pokemon.ToString())
 
     print("Времени понадобилось для второго вызова {}".format(time.time() - start_time))
 
