@@ -51,8 +51,8 @@ async def get_pokemon_list_keyboard(start_pok_id) -> types.InlineKeyboardMarkup:
 @dp.message_handler(commands='pokemons')
 async def cmd_start(message: types.Message):
     id_pok = message.get_args()
-    if argument.isdigit():
-        await message.reply("1 Page", reply_markup=await get_pokemon_list_keyboard(id_pok))
+    if id_pok.isdigit():
+        await message.reply("1 Page", reply_markup=await get_pokemon_list_keyboard(int(id_pok)))
 
 @dp.callback_query_handler(pokemon_cb.filter(action='page'))
 async def query_show_list(query: types.CallbackQuery, callback_data: dict):
