@@ -83,8 +83,11 @@ class PokemonFetch:
                 return None
 
 
+    def my_key_builder(*args):
+        return args[1]
+
     @staticmethod
-    @cached()
+    @cached(key_builder = my_key_builder)
     async def get_pokemon_id(id):
         async with aiohttp.ClientSession() as session:
             data_stats = await PokemonFetch.fetch(session, PokemonFetch.url_pok_stats.format(id))
