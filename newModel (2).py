@@ -1,15 +1,7 @@
 # coding=utf8
 import aiohttp
 import asyncio
-import json
-import time
-import logging
-
-import asyncpool
-
-from aiocache import cached
-from aiocache.serializers import PickleSerializer
-
+import ujson as json
 from schematics.models import Model
 from schematics.types import StringType, URLType, DecimalType, ListType
 
@@ -28,17 +20,18 @@ pokemon_description = """*Имя покемона:* {0}
 *ID:* {11}"""
 
 class Pokemon(Model):
-    ID = DecimalType(required = True)
-    Name = StringType(required = True)
-    Weight = DecimalType(required = True)
-    HP = DecimalType(required = True)
-    Attack = DecimalType(required = True)
-    Defense = DecimalType(required = True)
-    Speed = DecimalType(required = True)
-    SpecialAttack = DecimalType(required = True)
-    SpecialDefense = DecimalType(required = True)
+    FatherID = DecimalType()
+    ID = DecimalType()
+    Name = StringType()
+    Weight = DecimalType()
+    HP = DecimalType()
+    Attack = DecimalType()
+    Defense = DecimalType()
+    Speed = DecimalType()
+    SpecialAttack = DecimalType()
+    SpecialDefense = DecimalType()
     Types = ListType(StringType)
-    Image = StringType(required = True)
+    Image = StringType()
     Varieties = ListType(DecimalType)
 
     def __init__(self, data_stats = None, data_varaities = None):
@@ -58,9 +51,6 @@ class Pokemon(Model):
         self.Image = "https://img.pokemondb.net/artwork/{}.jpg".format(self.Name)
         if data_varaities:
             self.Varieties = [i['pokemon']['url'].split("/")[-2] for i in data_varaities["varieties"]][1:]
-        else:
-            self.Varieties = []
-        self.validate()
 
     async def GetForms(self):
         forms = []
@@ -71,16 +61,11 @@ class Pokemon(Model):
         return forms
 
     def ToString(self):
+        #print(pokemon_description)
         return pokemon_description.format(self.Name, '123', self.Attack,
         self.HP, self.Defense, ', '.join(self.Types),
         self.SpecialAttack, self.SpecialDefense, self.Speed,
         'володя дороби поколеніє', 'ВОЛОДЯ ДОРОБИ ЛЕГЕНДАРНОСТЬ', self.ID)
-
-    def __str__(self):
-        return "Pokemon ID: {}".format(self.ID)
-
-    def __repr__(self):
-        return str(self)
 
 class PokemonFetch:
     url_pok_stats = "https://pokeapi.co/api/v2/pokemon/{}/"
@@ -93,47 +78,20 @@ class PokemonFetch:
             else:
                 return None
 
-    async def result_reader(queue, start_id):
-        poks = [None for i in range(0, 6, 1)]
-        while True:
-            value = await queue.get()
-            if value is None:
-                break
-            #print("Got value! -> {}".format(value))
-            poks[int(value.ID)-start_id] = value#.append(value)
-
-        return poks[1:]
-
-    def get_pokemon_id(pokemon):
-        print(pokemon.ID)
-        return pokemon.ID
-
-    def key_builder_id(*args):
-        return args[1]
-
     @staticmethod
-    @cached(key_builder = key_builder_id, namespace = "get_pokemon_id")
-    async def get_pokemon_id(id, result_queue = None):
+    async def get_pokemon_id(id):
         async with aiohttp.ClientSession() as session:
             data_stats = await PokemonFetch.fetch(session, PokemonFetch.url_pok_stats.format(id))
             data_varaities = await PokemonFetch.fetch(session, PokemonFetch.url_pok_varaites.format(id))
-            if result_queue:
-                await result_queue.put(Pokemon(data_stats, data_varaities))
-            else:
-                return Pokemon(data_stats, data_varaities)
+            return Pokemon(data_stats , data_varaities)
 
-    @staticmethod
-    @cached(key_builder = key_builder_id, namespace = "get_pokemon_list")
-    async def get_pokemon_list(start_id):
-        result_queue = asyncio.Queue()
-        reader_future = asyncio.ensure_future(PokemonFetch.result_reader(result_queue, start_id), loop=asyncio.get_running_loop())
+async def main():
+    pok = await PokemonFetch.get_pokemon_id(6)
+    print(pok.ToString())
+    pok_forms = await pok.GetForms()
+    for new_pokemon in pok_forms:
+        print(new_pokemon.ToString())
 
-        async with asyncpool.AsyncPool(asyncio.get_running_loop(), num_workers=6, name="GetPokemonListPool",
-                                logger=logging.getLogger("ExamplePool"),
-                                worker_co=PokemonFetch.get_pokemon_id, max_task_time=300,
-                                log_every_n=10) as pool:
-            for i in range(start_id, start_id + 6, 1):
-                await pool.push(i, result_queue)
-
-        await result_queue.put(None)
-        return await reader_future
+if __name__ == "__main__":
+    loop = asyncio.get_event_loop()
+    loop.run_until_complete(main())
