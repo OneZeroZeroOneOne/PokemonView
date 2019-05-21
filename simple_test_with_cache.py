@@ -25,7 +25,7 @@ async def main():
 
     start_time = time.time()
     pok = await PokemonFetch.get_pokemon_id(5)
-    
+
     print(pok.ToString())
     print("\n\n!!!форми покездона:")
     for i in await pok.GetForms():

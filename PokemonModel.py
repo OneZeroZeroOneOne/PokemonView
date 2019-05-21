@@ -29,6 +29,8 @@ class Pokemon(Model):
     Image = StringType(required = True)
     Varieties = ListType(DecimalType)
 
+    EvolutionChainUrl = URLType()
+
     def __init__(self, data_stats = None, data_varaities = None):
         super(Pokemon, self).__init__()
         Stats = data_stats['stats']
@@ -44,7 +46,7 @@ class Pokemon(Model):
         self.SpecialDefense = Stats[1]['base_stat']
         self.Types = [i['type']['name'] for i in data_stats["types"]]
         self.Image = "https://img.pokemondb.net/artwork/{}.jpg".format(self.Name)
-
+        self.EvolutionChainUrl = data_varaities['evolution_chain']['url']
         if data_varaities:
             self.Varieties = [i['pokemon']['url'].split("/")[-2] for i in data_varaities["varieties"]][1:]
         else:
@@ -66,7 +68,7 @@ class Pokemon(Model):
         from_list = []
         into_list = []
         evolution_list = self.flat_evolution_list(
-                        await PokemonFetch.get_pokemon_evolution_chain(self.ID),
+                        await PokemonFetch.get_pokemon_evolution_chain(self.EvolutionChainUrl),
                         new_l = [])
         for n, i in enumerate(evolution_list):
             if str(self.ID) in i:
@@ -149,22 +151,17 @@ class PokemonFetch:
 
         return poks
 
-    def get_pokemon_id(pokemon):
-        return pokemon.ID
-
     def key_builder_id(*args):
         return args[1]
 
     @staticmethod
     @cached(key_builder = key_builder_id, namespace = "get_pokemon_evol_chain")
-    async def get_pokemon_evolution_chain(id):
+    async def get_pokemon_evolution_chain(url):
         """
             return pokemon evol chain
         """
         async with aiohttp.ClientSession() as session:
-            chain = await PokemonFetch.fetch(session, PokemonFetch.species_url.format(id))
-            chain = chain['evolution_chain']['url']
-            chain = await PokemonFetch.fetch(session, chain)
+            chain = await PokemonFetch.fetch(session, url)
             return chain['chain']
 
     @staticmethod
