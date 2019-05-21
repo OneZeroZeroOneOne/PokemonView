@@ -111,7 +111,7 @@ class Pokemon(Model):
         return config.pokemon_description.format(self.Name, '123', self.Attack,
         self.HP, self.Defense, ', '.join(self.Types),
         self.SpecialAttack, self.SpecialDefense, self.Speed,
-        'володя дороби поколеніє', 'ВОЛО', self.ID)
+        'володя дороби поколеніє', 'ВОЛО', self.ID,self.Image)
 
     def __str__(self):
         return "< Pokemon ID: {} >".format(self.ID)

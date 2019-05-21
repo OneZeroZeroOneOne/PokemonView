@@ -22,7 +22,10 @@ storage = MemoryStorage()
 dp = Dispatcher(bot, storage=storage)
 dp.middleware.setup(LoggingMiddleware())
 
+
+
 pokemon_cb = CallbackData('pokemon', 'id', 'action')  # pokemon:<id>:<action>
+into_cb = CallbackData('into', 'into_cb','id')
 
 """
 норм
@@ -33,27 +36,32 @@ async def get_pokemon_varieties_keyboard(pok_forms_mid) -> types.InlineKeyboardM
     #токо в оцьой хуйны -->
     varieties_forms = await pok_forms_mid.GetForms()
     print(varieties_forms)
-    slist = list()
     markup =  types.InlineKeyboardMarkup()
     if len(varieties_forms)>=1:
-        markup.add(types.InlineKeyboardButton("Возможные трансформации:", callback_data ="s"))
-        for i in varieties_forms:
-            slist.append(types.InlineKeyboardButton("{}".format(i.Name), callback_data = pokemon_cb.new(id=i.ID, action='view')))
-        markup.row(*slist)
+        markup.add(types.InlineKeyboardButton("Возможные трансформации:", callback_data = into_cb.new(into_cb = 'trans',id = varieties_forms)))
     evolution = await pok_forms_mid.GetEvolutions()
     if evolution:
         if evolution['from']:
             eflist = list()
-            markup.add(types.InlineKeyboardButton("Еволюционирует ИЗ:", callback_data ="s"))
+            eflist.append(types.InlineKeyboardButton("Евол. ИЗ:", callback_data = 's'))
             for i in evolution['from']:
                 eflist.append(types.InlineKeyboardButton("{}".format(i.Name), callback_data = pokemon_cb.new(id=i.ID, action='view')))
             markup.row(*eflist)
         if evolution['into']:
             eilist = list()
-            markup.add(types.InlineKeyboardButton("Еволюционирует В:", callback_data ="s"))
+            eilist.append(types.InlineKeyboardButton("Евол. В:", callback_data ="s"))
             for i in evolution['into']:
                 eilist.append(types.InlineKeyboardButton("{}".format(i.Name), callback_data = pokemon_cb.new(id=i.ID, action='view')))
             markup.row(*eilist)
+    return markup
+
+
+async def get_trans_list_keyboard(varieties) -> types.InlineKeyboardMarkup:
+    markup = types.InlineKeyboardMarkup()
+    varietiesList = list()
+    for i in varieties:
+        varietiesList.append(types.InlineKeyboardButton("{}".format(i.Name), callback_data = pokemon_cb.new(id=i.ID, action='view')))
+    markup.row(*varietiesList)
     return markup
 
 
@@ -102,9 +110,25 @@ async def query_show_list(query: types.CallbackQuery, callback_data: dict):
 async def query_show_list(query: types.CallbackQuery, callback_data: dict):
     start_id = int(callback_data['id'])
     Pokemon = await PokemonFetch.get_pokemon_id(start_id)
-    await bot.send_photo(chat_id = query.from_user.id, photo = Pokemon.Image,
-    caption = Pokemon.ToString(), parse_mode = 'Markdown',
+    await query.message.edit_text(Pokemon.ToString(), parse_mode = 'Markdown',
     reply_markup = await get_pokemon_varieties_keyboard(Pokemon))
+
+
+@dp.callback_query_handler(into_cb.filter(into_cb='trans'))
+async def query_show_list(query: types.CallbackQuery, callback_data: dict):
+    varieties_forms = callback_data['id']
+    await query.message.edit_text("*Трансформации:*", parse_mode = 'Markdown',
+    reply_markup = await get_trans_list_keyboard(varieties_forms))
+
+
+
+
+
+
+
+
+
+
 
 if __name__ == '__main__':
     executor.start_polling(dp, loop=loop, skip_updates=True)
