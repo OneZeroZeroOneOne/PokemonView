@@ -14,19 +14,6 @@ from aiocache.serializers import PickleSerializer
 from schematics.models import Model
 from schematics.types import StringType, URLType, DecimalType, ListType
 
-pokemon_description = """*Имя покемона:* {0}
-*В общем:* {1}
-*Атака:* {2}
-*HP:* {3}
-*Защита:* {4}
-*Типы*: {5}
-*Доп.Атк:* {6}
-*Доп.Защ:* {7}
-*Скорость:* {8}
-*Поколение:* {9}
-*Легендарность:* {10}
-
-*ID:* {11}"""
 
 class Pokemon(Model):
     ID = DecimalType(required = True)
@@ -57,15 +44,14 @@ class Pokemon(Model):
         self.SpecialDefense = Stats[1]['base_stat']
         self.Types = [i['type']['name'] for i in data_stats["types"]]
         self.Image = "https://img.pokemondb.net/artwork/{}.jpg".format(self.Name)
-        #self.Species_url = data_stats['species']['url']#[i['url'] for i in data_stats['species']]
-        #self.Evolution_chain =
-        #print(self.Species_url)
+
         if data_varaities:
             self.Varieties = [i['pokemon']['url'].split("/")[-2] for i in data_varaities["varieties"]][1:]
         else:
             self.Varieties = []
+
         self.validate()
-        
+
 
     async def GetForms(self):
         return await PokemonFetch.get_pokemon_id_list(self.Varieties)
@@ -79,7 +65,7 @@ class Pokemon(Model):
         """
         from_list = []
         into_list = []
-        evolution_list = self.flat_list(
+        evolution_list = self.flat_evolution_list(
                         await PokemonFetch.get_pokemon_evolution_chain(self.ID),
                         new_l = [])
         for n, i in enumerate(evolution_list):
@@ -88,32 +74,35 @@ class Pokemon(Model):
                     from_list = evolution_list[n-1]
                 if n+1!=len(evolution_list):
                     into_list = evolution_list[n+1]
-
+        """
+            я хз чі код ниже асінхронний треба переробить
+            хз
+        """
         return {"from":await PokemonFetch.get_pokemon_id_list(from_list),
                 "into":await PokemonFetch.get_pokemon_id_list(into_list)}
 
 
 
     def ToString(self):
-        return pokemon_description.format(self.Name, '123', self.Attack,
+        return config.pokemon_description.format(self.Name, '123', self.Attack,
         self.HP, self.Defense, ', '.join(self.Types),
         self.SpecialAttack, self.SpecialDefense, self.Speed,
         'володя дороби поколеніє', 'ВОЛО', self.ID)
 
     def __str__(self):
-        return "Pokemon ID: {}".format(self.ID)
+        return "< Pokemon ID: {} >".format(self.ID)
 
     def __repr__(self):
         return str(self)
 
-    def flat_list(self, l, new_l = [], pos = 0):
+    def flat_evolution_list(self, l, new_l = [], pos = 0):
         if (pos==0):
             new_l.append([l['species']['url'].split("/")[-2]])
         else:
             new_l[-1].append(l['species']['url'].split("/")[-2])
         if l['evolves_to']:
             for n, i in enumerate(l['evolves_to']):
-                self.flat_list(i, new_l = new_l, pos = n)
+                self.flat_evolution_list(i, new_l = new_l, pos = n)
 
         return new_l
 
@@ -199,8 +188,8 @@ class PokemonFetch:
         reader_future = asyncio.ensure_future(PokemonFetch.result_reader_list(result_queue, start_id), loop=asyncio.get_running_loop())
 
         async with asyncpool.AsyncPool(asyncio.get_running_loop(), num_workers=config.pokemons_per_page, name="GetPokemonListPool",
-                                logger=logging.getLogger("ExamplePool"),
-                                worker_co=PokemonFetch._get_pokemon_id, max_task_time=300,
+                                logger=logging.getLogger("PokemonListPool"),
+                                worker_co=PokemonFetch._get_pokemon_id, max_task_time=config.pool_task_time,
                                 log_every_n=10) as pool:
             for i in range(start_id, start_id + config.pokemons_per_page, 1):
                 await pool.push(i, result_queue)
@@ -220,8 +209,8 @@ class PokemonFetch:
         reader_future = asyncio.ensure_future(PokemonFetch.result_reader_id_list(result_queue), loop=asyncio.get_running_loop())
 
         async with asyncpool.AsyncPool(asyncio.get_running_loop(), num_workers=len(id_list)+1, name="GetPokemonListPool",
-                                logger=logging.getLogger("ExamplePool"),
-                                worker_co=PokemonFetch._get_pokemon_id, max_task_time=300,
+                                logger=logging.getLogger("PokemonListIdPool"),
+                                worker_co=PokemonFetch._get_pokemon_id, max_task_time=config.pool_task_time,
                                 log_every_n=10) as pool:
             for i in id_list:
                 await pool.push(i, result_queue)
