@@ -57,19 +57,42 @@ class Pokemon(Model):
         self.SpecialDefense = Stats[1]['base_stat']
         self.Types = [i['type']['name'] for i in data_stats["types"]]
         self.Image = "https://img.pokemondb.net/artwork/{}.jpg".format(self.Name)
+        #self.Species_url = data_stats['species']['url']#[i['url'] for i in data_stats['species']]
+        #self.Evolution_chain =
+        #print(self.Species_url)
         if data_varaities:
             self.Varieties = [i['pokemon']['url'].split("/")[-2] for i in data_varaities["varieties"]][1:]
         else:
             self.Varieties = []
         self.validate()
+        
 
     async def GetForms(self):
-        forms = []
-        if self.Varieties:
-            for i in self.Varieties:
-                forms.append(await PokemonFetch.get_pokemon_id(i))
+        return await PokemonFetch.get_pokemon_id_list(self.Varieties)
 
-        return forms
+
+    async def GetEvolutions(self):
+        """
+            return dictionary
+            ['from'] - from who this pokemon evoltion
+            ['into'] - in which this pokemon can evolute
+        """
+        from_list = []
+        into_list = []
+        evolution_list = self.flat_list(
+                        await PokemonFetch.get_pokemon_evolution_chain(self.ID),
+                        new_l = [])
+        for n, i in enumerate(evolution_list):
+            if str(self.ID) in i:
+                if n-1!=-1:
+                    from_list = evolution_list[n-1]
+                if n+1!=len(evolution_list):
+                    into_list = evolution_list[n+1]
+
+        return {"from":await PokemonFetch.get_pokemon_id_list(from_list),
+                "into":await PokemonFetch.get_pokemon_id_list(into_list)}
+
+
 
     def ToString(self):
         return pokemon_description.format(self.Name, '123', self.Attack,
@@ -83,9 +106,22 @@ class Pokemon(Model):
     def __repr__(self):
         return str(self)
 
+    def flat_list(self, l, new_l = [], pos = 0):
+        if (pos==0):
+            new_l.append([l['species']['url'].split("/")[-2]])
+        else:
+            new_l[-1].append(l['species']['url'].split("/")[-2])
+        if l['evolves_to']:
+            for n, i in enumerate(l['evolves_to']):
+                self.flat_list(i, new_l = new_l, pos = n)
+
+        return new_l
+
+
 class PokemonFetch:
     url_pok_stats = "https://pokeapi.co/api/v2/pokemon/{}/"
     url_pok_varaites = 'https://pokeapi.co/api/v2/pokemon-species/{}/'
+    species_url = "https://pokeapi.co/api/v2/pokemon-species/{}/"
 
     async def fetch(session, url):
         async with session.get(url) as response:
@@ -94,14 +130,25 @@ class PokemonFetch:
             else:
                 return None
 
-    async def result_reader(queue, start_id):
+    async def result_reader_list(queue, start_id):
         poks = [None for i in range(0, config.pokemons_per_page, 1)]
         while True:
             value = await queue.get()
             if value is None:
                 break
             #print("Got value! -> {}".format(value))
-            poks[int(value.ID)-start_id] = value#.append(value)
+            poks[int(value.ID)-start_id] = value
+
+        return poks
+
+    async def result_reader_id_list(queue):
+        poks = []
+        while True:
+            value = await queue.get()
+            if value is None:
+                break
+            #print("Got value! -> {}".format(value))
+            poks.append(value)
 
         return poks
 
@@ -110,6 +157,18 @@ class PokemonFetch:
 
     def key_builder_id(*args):
         return args[1]
+
+    @staticmethod
+    @cached(key_builder = key_builder_id, namespace = "get_pokemon_evol_chain")
+    async def get_pokemon_evolution_chain(id):
+        """
+            return pokemon evol chain
+        """
+        async with aiohttp.ClientSession() as session:
+            chain = await PokemonFetch.fetch(session, PokemonFetch.species_url.format(id))
+            chain = chain['evolution_chain']['url']
+            chain = await PokemonFetch.fetch(session, chain)
+            return chain['chain']
 
     @staticmethod
     @cached(key_builder = key_builder_id, namespace = "get_pokemon_id")
@@ -130,14 +189,41 @@ class PokemonFetch:
     @staticmethod
     @cached(key_builder = key_builder_id, namespace = "get_pokemon_list")
     async def get_pokemon_list(start_id):
+        """
+            in: start_id(where from to start offset): 1
+            return: list of pokemons instances start_id + pok_per_page: 1+6
+            so it be pokemons with id: [1, 2, 3, 4, 5, 6]
+            sorted
+        """
         result_queue = asyncio.Queue()
-        reader_future = asyncio.ensure_future(PokemonFetch.result_reader(result_queue, start_id), loop=asyncio.get_running_loop())
+        reader_future = asyncio.ensure_future(PokemonFetch.result_reader_list(result_queue, start_id), loop=asyncio.get_running_loop())
 
         async with asyncpool.AsyncPool(asyncio.get_running_loop(), num_workers=config.pokemons_per_page, name="GetPokemonListPool",
                                 logger=logging.getLogger("ExamplePool"),
                                 worker_co=PokemonFetch._get_pokemon_id, max_task_time=300,
                                 log_every_n=10) as pool:
             for i in range(start_id, start_id + config.pokemons_per_page, 1):
+                await pool.push(i, result_queue)
+
+        await result_queue.put(None)
+        return await reader_future
+
+    @staticmethod
+    @cached(key_builder = key_builder_id, namespace = "get_pokemon_id_list")
+    async def get_pokemon_id_list(id_list):
+        """
+            in: list with ids [1, 100, 120, 90, ....]
+            return: pokemons instances with this ids
+            warn: return not sorted list
+        """
+        result_queue = asyncio.Queue()
+        reader_future = asyncio.ensure_future(PokemonFetch.result_reader_id_list(result_queue), loop=asyncio.get_running_loop())
+
+        async with asyncpool.AsyncPool(asyncio.get_running_loop(), num_workers=len(id_list)+1, name="GetPokemonListPool",
+                                logger=logging.getLogger("ExamplePool"),
+                                worker_co=PokemonFetch._get_pokemon_id, max_task_time=300,
+                                log_every_n=10) as pool:
+            for i in id_list:
                 await pool.push(i, result_queue)
 
         await result_queue.put(None)
