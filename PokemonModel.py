@@ -81,6 +81,14 @@ class Pokemon(Model):
         return {"from":await PokemonFetch.get_pokemon_id_list(from_list),
                 "into":await PokemonFetch.get_pokemon_id_list(into_list)}
 
+    def DefenseType(self):
+        return self.Types[0]
+
+
+    def AttackType(self):
+        if len(self.Types)==1:
+            return ""
+        return self.Types[1]
 
 
     def ToString(self):
