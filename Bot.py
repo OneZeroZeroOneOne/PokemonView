@@ -22,7 +22,7 @@ storage = MemoryStorage()
 dp = Dispatcher(bot, storage=storage)
 dp.middleware.setup(LoggingMiddleware())
 
-pokemon_cb = CallbackData('pokemon', 'id', 'action')  # pokemon:<id>:<action>
+pokemon_cb = CallbackData('pokemon', 'id', 'action','trans_off')  # pokemon:<id>:<action>
 
 """
 норм
@@ -35,20 +35,14 @@ async def get_pokemon_varieties_keyboard(pok_forms_mid) -> types.InlineKeyboardM
     print(varieties_forms)
     slist = list()
     markup =  types.InlineKeyboardMarkup()
-    markup.add(types.InlineKeyboardButton("Возможные трансформации:", callback_data ="s"))
-    for i in varieties_forms[1:]:
-        slist.append(types.InlineKeyboardButton("{}".forms(i.Name), callback_data = pokemon_cb.new(id=i.ID, action='view')))
+
+    if variates_forms:
+        markup.add(types.InlineKeyboardButton("Возможные трансформации:", callback_data ="s"))
+        for i in varieties_forms:
+            slist.append(types.InlineKeyboardButton("{}".format(i.Name), callback_data = pokemon_cb.new(id=i.ID, action='view', trans_off = pok_forms_mid)))
     markup.row(*slist)
     markup.add(types.InlineKeyboardButton("Возможные еволюции:", callback_data ="s"))
     return markup
-
-
-
-
-
-
-
-
 
 
 
