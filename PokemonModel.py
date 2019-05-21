@@ -47,20 +47,22 @@ class Pokemon(Model):
         self.Speed =  Stats[0]['base_stat']
         self.SpecialAttack = Stats[2]['base_stat']
         self.SpecialDefense = Stats[1]['base_stat']
+        print(self.ID)
         self.Types = [i['type']['name'] for i in data_stats["types"]]
         self.Image = "https://img.pokemondb.net/artwork/{}.jpg".format(self.Name)
 
-        self.EvolutionChainUrl = data_varaities['evolution_chain']['url']
 
         self.BackSprite = data_stats['sprites']['back_default']
         self.FrontSprite = data_stats['sprites']['front_default']
 
         if data_varaities:
+            self.EvolutionChainUrl = data_varaities['evolution_chain']['url']
             self.Varieties = [i['pokemon']['url'].split("/")[-2] for i in data_varaities["varieties"]][1:]
         else:
+            self.EvolutionChainUrl = "https://example.com"
             self.Varieties = []
 
-        self.validate()
+        #self.validate()
 
 
     async def GetForms(self):
@@ -75,21 +77,25 @@ class Pokemon(Model):
         """
         from_list = []
         into_list = []
-        evolution_list = self.flat_evolution_list(
-                        await PokemonFetch.get_pokemon_evolution_chain(self.EvolutionChainUrl),
-                        new_l = [])
-        for n, i in enumerate(evolution_list):
-            if str(self.ID) in i:
-                if n-1!=-1:
-                    from_list = evolution_list[n-1]
-                if n+1!=len(evolution_list):
-                    into_list = evolution_list[n+1]
-        """
-            я хз чі код ниже асінхронний треба переробить
-            хз
-        """
-        return {"from":await PokemonFetch.get_pokemon_id_list(from_list),
-                "into":await PokemonFetch.get_pokemon_id_list(into_list)}
+        if self.EvolutionChainUrl!="https://example.com":
+            evolution_list = self.flat_evolution_list(
+                            await PokemonFetch.get_pokemon_evolution_chain(self.EvolutionChainUrl),
+                            new_l = [])
+            for n, i in enumerate(evolution_list):
+                if str(self.ID) in i:
+                    if n-1!=-1:
+                        from_list = evolution_list[n-1]
+                    if n+1!=len(evolution_list):
+                        into_list = evolution_list[n+1]
+            """
+                я хз чі код ниже асінхронний треба переробить
+                хз
+            """
+            return {"from":await PokemonFetch.get_pokemon_id_list(from_list),
+                    "into":await PokemonFetch.get_pokemon_id_list(into_list)}
+        else:
+            return {"from":[],
+                    "into":[]}
 
     def DefenseType(self):
         return self.Types[0]
