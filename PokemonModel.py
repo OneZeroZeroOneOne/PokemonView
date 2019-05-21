@@ -26,10 +26,13 @@ class Pokemon(Model):
     SpecialAttack = DecimalType(required = True)
     SpecialDefense = DecimalType(required = True)
     Types = ListType(StringType)
-    Image = StringType(required = True)
+    Image = URLType(required = True)
     Varieties = ListType(DecimalType)
 
     EvolutionChainUrl = URLType()
+
+    BackSprite = URLType(required = True)
+    FrontSprite = URLType(required = True)
 
     def __init__(self, data_stats = None, data_varaities = None):
         super(Pokemon, self).__init__()
@@ -46,7 +49,12 @@ class Pokemon(Model):
         self.SpecialDefense = Stats[1]['base_stat']
         self.Types = [i['type']['name'] for i in data_stats["types"]]
         self.Image = "https://img.pokemondb.net/artwork/{}.jpg".format(self.Name)
+
         self.EvolutionChainUrl = data_varaities['evolution_chain']['url']
+
+        self.BackSprite = data_stats['sprites']['back_default']
+        self.FrontSprite = data_stats['sprites']['front_default']
+
         if data_varaities:
             self.Varieties = [i['pokemon']['url'].split("/")[-2] for i in data_varaities["varieties"]][1:]
         else:
@@ -120,7 +128,6 @@ class Pokemon(Model):
 class PokemonFetch:
     url_pok_stats = "https://pokeapi.co/api/v2/pokemon/{}/"
     url_pok_varaites = 'https://pokeapi.co/api/v2/pokemon-species/{}/'
-    species_url = "https://pokeapi.co/api/v2/pokemon-species/{}/"
 
     async def fetch(session, url):
         async with session.get(url) as response:
