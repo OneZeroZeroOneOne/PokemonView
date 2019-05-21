@@ -24,7 +24,7 @@ async def main():
     print("Времени понадобилось для первого вызова {}\nВсего покемонов создано {}".format(time.time() - start_time, pok_count))
 
     start_time = time.time()
-    pok = await PokemonFetch.get_pokemon_id(6)
+    pok = await PokemonFetch.get_pokemon_id(5)
     await pok.GetEvolutions()
     print(pok.ToString())
     print("\n\n!!!форми покездона:")
