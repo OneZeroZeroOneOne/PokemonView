@@ -3,3 +3,4 @@ msgpack
 aiocache
 aiohttp
 aioredis
+aiomcache
