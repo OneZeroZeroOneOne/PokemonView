@@ -7,7 +7,7 @@ async def main():
     #for i in range(1, 100, 1):
         #print(i)
     pok = await PokemonFetch.get_pokemon_id(5)
-    await pok.GetEvolutions()
+
     print(pok.ToString())
     print("\n\n!!!форми покездона:")
     for i in await pok.GetForms():
@@ -25,7 +25,7 @@ async def main():
 
     start_time = time.time()
     pok = await PokemonFetch.get_pokemon_id(5)
-    await pok.GetEvolutions()
+    
     print(pok.ToString())
     print("\n\n!!!форми покездона:")
     for i in await pok.GetForms():
