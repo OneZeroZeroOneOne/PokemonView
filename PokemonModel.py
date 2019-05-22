@@ -61,7 +61,7 @@ class Pokemon(Model):
         self.validate()
 
     async def GetForms(self):
-        return await PokemonFetch.Instance().get_pokemon_id_list(self.Varieties)
+        return await PokemonFetch().get_pokemon_id_list(self.Varieties)
 
 
     async def GetEvolutions(self):
@@ -73,7 +73,7 @@ class Pokemon(Model):
         from_list = []
         into_list = []
         evolution_list = self.flat_evolution_list(
-                        await PokemonFetch.Instance().get_pokemon_evolution_chain(self.EvolutionChainUrl),
+                        await PokemonFetch().get_pokemon_evolution_chain(self.EvolutionChainUrl),
                         new_l = [])
 
         for n, i in enumerate(evolution_list):
@@ -86,8 +86,8 @@ class Pokemon(Model):
             я хз чі код ниже асінхронний треба переробить
             хз
         """
-        return {"from":await PokemonFetch.Instance().get_pokemon_id_list(from_list),
-                "into":await PokemonFetch.Instance().get_pokemon_id_list(into_list)}
+        return {"from":await PokemonFetch().get_pokemon_id_list(from_list),
+                "into":await PokemonFetch().get_pokemon_id_list(into_list)}
 
 
     def DefenseType(self):
@@ -133,6 +133,9 @@ class PokemonFetch:
             ???
         """
         pass
+
+    def __call__(self):
+        return PokemonFetch.Instance()
 
     async def fetch(self, url):
         async with aiohttp.ClientSession() as session:
