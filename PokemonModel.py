@@ -31,8 +31,8 @@ class Pokemon(Model):
 
     EvolutionChainUrl = URLType()
 
-    BackSprite = URLType(required = True)
-    FrontSprite = URLType(required = True)
+    BackSprite = URLType()
+    FrontSprite = URLType()
 
     def __init__(self, data_stats = None, data_varaities = None):
         super(Pokemon, self).__init__()
@@ -47,7 +47,7 @@ class Pokemon(Model):
         self.Speed =  Stats[0]['base_stat']
         self.SpecialAttack = Stats[2]['base_stat']
         self.SpecialDefense = Stats[1]['base_stat']
-        print(self.ID)
+        #print(self.ID)
         self.Types = [i['type']['name'] for i in data_stats["types"]]
         self.Image = "https://img.pokemondb.net/artwork/{}.jpg".format(self.Name)
 
@@ -55,15 +55,10 @@ class Pokemon(Model):
         self.BackSprite = data_stats['sprites']['back_default']
         self.FrontSprite = data_stats['sprites']['front_default']
 
-        if data_varaities:
-            self.EvolutionChainUrl = data_varaities['evolution_chain']['url']
-            self.Varieties = [i['pokemon']['url'].split("/")[-2] for i in data_varaities["varieties"]][1:]
-        else:
-            self.EvolutionChainUrl = "https://example.com"
-            self.Varieties = []
+        self.EvolutionChainUrl = data_varaities['evolution_chain']['url']
+        self.Varieties = [i['pokemon']['url'].split("/")[-2] for i in data_varaities["varieties"]][1:]
 
-        #self.validate()
-
+        self.validate()
 
     async def GetForms(self):
         return await PokemonFetch.get_pokemon_id_list(self.Varieties)
@@ -77,25 +72,22 @@ class Pokemon(Model):
         """
         from_list = []
         into_list = []
-        if self.EvolutionChainUrl!="https://example.com":
-            evolution_list = self.flat_evolution_list(
-                            await PokemonFetch.get_pokemon_evolution_chain(self.EvolutionChainUrl),
-                            new_l = [])
-            for n, i in enumerate(evolution_list):
-                if str(self.ID) in i:
-                    if n-1!=-1:
-                        from_list = evolution_list[n-1]
-                    if n+1!=len(evolution_list):
-                        into_list = evolution_list[n+1]
-            """
-                я хз чі код ниже асінхронний треба переробить
-                хз
-            """
-            return {"from":await PokemonFetch.get_pokemon_id_list(from_list),
-                    "into":await PokemonFetch.get_pokemon_id_list(into_list)}
-        else:
-            return {"from":[],
-                    "into":[]}
+        evolution_list = self.flat_evolution_list(
+                        await PokemonFetch.get_pokemon_evolution_chain(self.EvolutionChainUrl),
+                        new_l = [])
+        for n, i in enumerate(evolution_list):
+            if str(self.ID) in i:
+                if n-1!=-1:
+                    from_list = evolution_list[n-1]
+                if n+1!=len(evolution_list):
+                    into_list = evolution_list[n+1]
+        """
+            я хз чі код ниже асінхронний треба переробить
+            хз
+        """
+        return {"from":await PokemonFetch.get_pokemon_id_list(from_list),
+                "into":await PokemonFetch.get_pokemon_id_list(into_list)}
+
 
     def DefenseType(self):
         return self.Types[0]
@@ -133,7 +125,6 @@ class Pokemon(Model):
 
 class PokemonFetch:
     url_pok_stats = "https://pokeapi.co/api/v2/pokemon/{}/"
-    url_pok_varaites = 'https://pokeapi.co/api/v2/pokemon-species/{}/'
 
     async def fetch(session, url):
         async with session.get(url) as response:
@@ -182,7 +173,7 @@ class PokemonFetch:
     async def get_pokemon_id(id):
         async with aiohttp.ClientSession() as session:
             data_stats = await PokemonFetch.fetch(session, PokemonFetch.url_pok_stats.format(id))
-            data_varaities = await PokemonFetch.fetch(session, PokemonFetch.url_pok_varaites.format(id))
+            data_varaities = await PokemonFetch.fetch(session, data_stats['species']['url'])
             return Pokemon(data_stats, data_varaities)
 
     @staticmethod
@@ -190,7 +181,7 @@ class PokemonFetch:
     async def _get_pokemon_id(id, result_queue):
         async with aiohttp.ClientSession() as session:
             data_stats = await PokemonFetch.fetch(session, PokemonFetch.url_pok_stats.format(id))
-            data_varaities = await PokemonFetch.fetch(session, PokemonFetch.url_pok_varaites.format(id))
+            data_varaities = await PokemonFetch.fetch(session, data_stats['species']['url'])
             await result_queue.put(Pokemon(data_stats, data_varaities))
 
     @staticmethod
