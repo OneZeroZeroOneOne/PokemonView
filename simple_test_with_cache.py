@@ -2,14 +2,11 @@ import asyncio
 from PokemonModel import *
 
 async def main():
-    b = PokemonFetch.Instance()
-    #new_pok = await b.get_pokemon_id(1)
+    b = PokemonFetch()
 
     start_time = time.time()
     pok_count = 0
-    #for i in range(1, 100, 1):
-        #print(i)
-    pok = await b.get_pokemon_id(6)
+    pok = await b.get_pokemon_id(3)
 
     print(pok)
     print("\n\n!!!форми покездона:")
@@ -27,7 +24,7 @@ async def main():
     print("Времени понадобилось для первого вызова {}\nВсего покемонов создано {}".format(time.time() - start_time, pok_count))
 
     start_time = time.time()
-    pok = await b.get_pokemon_id(6)
+    pok = await b.get_pokemon_id(3)
 
     print(pok)
     print("\n\n!!!форми покездона:")
