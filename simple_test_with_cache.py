@@ -6,9 +6,9 @@ async def main():
 
     start_time = time.time()
     pok_count = 0
-    pok = await b.get_pokemon_id(3)
+    pok = await b.get_pokemon_id(6)
 
-    print(pok)
+    print(pok.ToString())
     print("\n\n!!!форми покездона:")
     for i in await pok.GetForms():
         print(i)

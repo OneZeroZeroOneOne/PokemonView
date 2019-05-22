@@ -25,12 +25,16 @@ class Pokemon(Model):
     Speed = IntType(required = True)
     SpecialAttack = IntType(required = True)
     SpecialDefense = IntType(required = True)
-    Types = ListType(StringType)
+    FullStat = IntType(required = True)
     Image = URLType(required = True)
+
     Varieties = ListType(IntType)
 
-    EvolutionChainUrl = URLType()
+    Types = ListType(StringType)
+    DefenseType = StringType()
+    AttackType = StringType()
 
+    EvolutionChainUrl = URLType()
     BackSprite = URLType()
     FrontSprite = URLType()
 
@@ -47,10 +51,10 @@ class Pokemon(Model):
         self.Speed =  Stats[0]['base_stat']
         self.SpecialAttack = Stats[2]['base_stat']
         self.SpecialDefense = Stats[1]['base_stat']
+        self.FullStat = sum([i['base_stat'] for i in Stats])
 
         self.Types = [i['type']['name'] for i in data_stats["types"]]
         self.Image = "https://img.pokemondb.net/artwork/{}.jpg".format(self.Name)
-
 
         self.BackSprite = data_stats['sprites']['back_default']
         self.FrontSprite = data_stats['sprites']['front_default']
@@ -89,19 +93,8 @@ class Pokemon(Model):
         return {"from":await PokemonFetch().get_pokemon_id_list(from_list),
                 "into":await PokemonFetch().get_pokemon_id_list(into_list)}
 
-
-    def DefenseType(self):
-        return self.Types[0]
-
-
-    def AttackType(self):
-        if len(self.Types)==1:
-            return ""
-        return self.Types[1]
-
-
     def ToString(self):
-        return config.pokemon_description.format(self.Name, '123', self.Attack,
+        return config.pokemon_description.format(self.Name, self.FullStat, self.Attack,
         self.HP, self.Defense, ', '.join(self.Types),
         self.SpecialAttack, self.SpecialDefense, self.Speed,
         'володя дороби поколеніє', 'ВОЛО', self.ID,self.Image)
