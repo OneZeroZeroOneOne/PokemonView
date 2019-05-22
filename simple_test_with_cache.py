@@ -6,12 +6,12 @@ async def main():
 
     start_time = time.time()
     pok_count = 0
-    pok = await b.get_pokemon_id(6)
+    pok = await b.get_pokemon_id(25)
 
     print(pok.ToString())
     print("\n\n!!!форми покездона:")
     for i in await pok.GetForms():
-        print(i)
+        print(i.ToString())
 
     pok_evol = await pok.GetEvolutions()
     print("\n\n!!!еволить из:")

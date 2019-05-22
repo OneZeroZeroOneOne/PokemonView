@@ -86,12 +86,11 @@ class Pokemon(Model):
                     from_list = evolution_list[n-1]
                 if n+1!=len(evolution_list):
                     into_list = evolution_list[n+1]
-        """
-            я хз чі код ниже асінхронний треба переробить
-            хз
-        """
-        return {"from":await PokemonFetch().get_pokemon_id_list(from_list),
-                "into":await PokemonFetch().get_pokemon_id_list(into_list)}
+
+        full_list = await PokemonFetch().get_pokemon_id_list(from_list + into_list)
+
+        return {"from":[i for i in full_list if str(i.ID) in from_list],
+                "into":[i for i in full_list if str(i.ID) in into_list]}
 
     def ToString(self):
         return config.pokemon_description.format(self.Name, self.FullStat, self.Attack,
