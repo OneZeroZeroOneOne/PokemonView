@@ -94,6 +94,10 @@ async def get_trans_list_keyboard(id) -> types.InlineKeyboardMarkup:
 
 async def get_pokemon_list_keyboard(start_pok_id) -> types.InlineKeyboardMarkup:
     markup = types.InlineKeyboardMarkup()
+    if start_pok_id < 1
+        start_pok_id = 1
+    if start_pok_id > 803
+        start_pok_id = 803
     pokes = await PokemonFetch().get_pokemon_list(start_pok_id)
     print(*pokes)
     for i in pokes:
@@ -101,14 +105,12 @@ async def get_pokemon_list_keyboard(start_pok_id) -> types.InlineKeyboardMarkup:
         types.InlineKeyboardButton(
                 i.Name,
                 callback_data=pokemon_cb.new(id=i.ID, action='view')))
-
-
     prev_button = types.InlineKeyboardButton("<< Prev", callback_data=pokemon_cb.new(id=start_pok_id - 6, action='page'))
     next_button = types.InlineKeyboardButton("Next >>", callback_data=pokemon_cb.new(id=start_pok_id + 6, action='page'))
-    if  start_pok_id>=802:
-        markup.row(prev_button)
-    elif start_pok_id<=1:
+    if  start_pok_id = 1:
         markup.row(next_button)
+    elif start_pok_id = 803:
+        markup.row(prev_button)
     else:
         markup.row(prev_button, next_button)
     return markup
