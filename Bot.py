@@ -5,6 +5,12 @@ import uuid
 import config
 from PokemonModel import PokemonFetch
 
+
+import aiogram.utils.markdown as md
+from aiogram.dispatcher import FSMContext
+from aiogram.dispatcher.filters.state import State, StatesGroup
+
+
 from aiogram.utils.helper import Helper, HelperMode, ListItem
 from aiogram import Bot, Dispatcher, executor, md, types
 from aiogram.contrib.fsm_storage.memory import MemoryStorage
@@ -23,19 +29,22 @@ dp = Dispatcher(bot, storage=storage)
 dp.middleware.setup(LoggingMiddleware())
 
 
-
-all_users = dict();
-
 pokemon_cb = CallbackData('pokemon', 'id', 'action')  # pokemon:<id>:<action>
 into_cb = CallbackData('into', 'into_cb','id')
-otmena_cb = CallbackData('otmena','Otm')
+otmena_cb = CallbackData('otmena','Otm','id')
+otmena_in_cb = CallbackData('otmena_in','Otmena_in','id')
+
+class Form(StatesGroup):
+    stapList = State()  # Will be represented in storage as 'Form:name'
+      # Will be represented in storage as 'Form:gender'
+
 
 """
 норм
 так же?
 """
 
-async def get_pokemon_varieties_keyboard(pok_forms_mid) -> types.InlineKeyboardMarkup:
+async def get_pokemon_varieties_keyboard(pok_forms_mid, state: FSMContext) -> types.InlineKeyboardMarkup:
     #токо в оцьой хуйны -->
     varieties_forms = await pok_forms_mid.GetForms()
     print(varieties_forms)
@@ -57,8 +66,15 @@ async def get_pokemon_varieties_keyboard(pok_forms_mid) -> types.InlineKeyboardM
                 eilist.append(types.InlineKeyboardButton("{}".format(i.Name),
                  callback_data = pokemon_cb.new(id=i.ID,action='view')))
             markup.row(*eilist)
-        markup.row(types.InlineKeyboardButton("Отмена", callback_data = otmena_cb.new(Otm ='Otmena'))
-        ,types.InlineKeyboardButton("В список", callback_data = otmena_cb.new(Otm ='Otmena_in_galery')))
+    mark_list = list()
+    async with state.proxy() as data:
+        if len(data.get('stapList'))>=2:
+            mark_list.append(types.InlineKeyboardButton("Назад", callback_data = otmena_cb.new(Otm ='Otmena',id = data.get('stapList')[len(data['stapList'])-2])))
+
+        else:
+            mark_list.append(types.InlineKeyboardButton("Назад", callback_data = otmena_in_cb.new(Otmena_in ='otmena',id = data.get('List'))))
+    mark_list.append(types.InlineKeyboardButton("В список", callback_data = otmena_in_cb.new(Otmena_in ='otmena',id = data.get('List'))))
+    markup.row(*mark_list)
     return markup
 
 
@@ -77,18 +93,14 @@ async def get_trans_list_keyboard(id) -> types.InlineKeyboardMarkup:
 
 
 async def get_pokemon_list_keyboard(start_pok_id) -> types.InlineKeyboardMarkup:
-    """
-    """
-
     markup = types.InlineKeyboardMarkup()
-    pokes = await PokemonFetch.get_pokemon_list(start_pok_id)
+    pokes = await PokemonFetch().get_pokemon_list(start_pok_id)
     print(*pokes)
     for i in pokes:
         markup.add(
         types.InlineKeyboardButton(
                 i.Name,
-                callback_data=pokemon_cb.new(id=i.ID, action='view'))
-        )
+                callback_data=pokemon_cb.new(id=i.ID, action='view')))
 
 
     prev_button = types.InlineKeyboardButton("<< Prev", callback_data=pokemon_cb.new(id=start_pok_id - 6, action='page'))
@@ -102,47 +114,57 @@ async def get_pokemon_list_keyboard(start_pok_id) -> types.InlineKeyboardMarkup:
     return markup
 
 @dp.message_handler(commands='pokemons')
-async def cmd_start(message: types.Message):
-    all_users[message.chat.id] = list()
+async def cmd_start(message: types.Message, state: FSMContext):
+    async with state.proxy() as data:
+        if message.get_args().isdigit():
+            argument = message.get_args()
+            data['List'] = argument
+        if not data.get('stapList'):#ваще ідеал писать отакз
+            Listok = list()
+            data['stapList'] = Listok
     id_pok = message.get_args()
     if id_pok.isdigit():
-        await message.reply("1 Page", reply_markup=await get_pokemon_list_keyboard(int(id_pok)))
+        await message.reply("Page", reply_markup=await get_pokemon_list_keyboard(int(id_pok)))
 
 @dp.callback_query_handler(pokemon_cb.filter(action='page'))
-async def query_show_list(query: types.CallbackQuery, callback_data: dict):
+async def query_show_list(query: types.CallbackQuery, callback_data: dict, state: FSMContext):
     start_id = int(callback_data['id'])
+    async with state.proxy() as data:
+        data['List'] = start_id
     print(start_id)
     await query.message.edit_text('{} Page'.format(int(start_id // 6) + 1), reply_markup=await get_pokemon_list_keyboard(int(start_id)))
 
 
 @dp.callback_query_handler(pokemon_cb.filter(action='view'))
-async def query_show_list(query: types.CallbackQuery, callback_data: dict):
+async def query_show_list(query: types.CallbackQuery, callback_data: dict, state: FSMContext):
     start_id = int(callback_data['id'])
-    all_users[query.message.chat.id].append(start_id)
-    Pokemon = await PokemonFetch.get_pokemon_id(start_id)
+    async with state.proxy() as data:
+        if data.get('stapList'):
+            data.get('stapList').append(start_id)
+        else:
+            Listok = list()
+            data['stapList'] = Listok
+            data.get('stapList').append(start_id)
+    Pokemon = await PokemonFetch().get_pokemon_id(start_id)
     await query.message.edit_text(Pokemon.ToString(), parse_mode = 'Markdown',
-    reply_markup = await get_pokemon_varieties_keyboard(Pokemon))
+    reply_markup = await get_pokemon_varieties_keyboard(Pokemon, state))
 
 
 @dp.callback_query_handler(into_cb.filter(into_cb='trans'))
-async def query_show_list(query: types.CallbackQuery, callback_data: dict):
-    Pokemon = await PokemonFetch.get_pokemon_id(callback_data['id'])
+async def query_show_list(query: types.CallbackQuery, callback_data: dict, state: FSMContext):
+    Pokemon = await PokemonFetch().get_pokemon_id(callback_data['id'])
     await query.message.edit_text("*Трансформации:*", parse_mode = 'Markdown',
     reply_markup = await get_trans_list_keyboard(str(Pokemon.ID)))
 
 @dp.callback_query_handler(otmena_cb.filter(Otm ='Otmena'))
-async def query_show_list(query: types.CallbackQuery, callback_data: dict):
-    k = all_users[query.message.chat.id].pop()
-    print(all_users[query.message.chat.id].pop())
-    Pokemon = await PokemonFetch.get_pokemon_id(k)
+async def query_show_list(query: types.CallbackQuery, callback_data: dict, state: FSMContext):
+    Pokemon = await PokemonFetch().get_pokemon_id(callback_data['id'])
     await query.message.edit_text(Pokemon.ToString(), parse_mode = 'Markdown',
-    reply_markup = await get_pokemon_varieties_keyboard(Pokemon))
+    reply_markup = await get_pokemon_varieties_keyboard(Pokemon, state))
 
-
-
-
-
-
+@dp.callback_query_handler(otmena_in_cb.filter(Otmena_in ='otmena'))
+async def query_show_list(query: types.CallbackQuery, callback_data: dict, state: FSMContext):
+    await query.message.edit_text('{} Page'.format(int(int(callback_data['id']) // 6) + 1), reply_markup=await get_pokemon_list_keyboard(int(callback_data['id'])))
 
 
 
