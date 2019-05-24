@@ -53,6 +53,10 @@ async def query_show_list(query: types.CallbackQuery, callback_data: dict, state
     async with state.proxy() as data:
         print(data['StorageList'][0])
         data['StorageList'][0] = start_id
+    async with state.proxy() as data:
+        if callback_data['Del'] == 'yes':
+            print("Srabotolo Del______________")
+            data['StorageList'].pop(-1)
     print(data['StorageList'][0] )
     await query.message.edit_text('Page:{}'.format(int(start_id)//6+1), reply_markup = await get_pokemon_list_keyboard(int(start_id)))
 
@@ -87,7 +91,7 @@ async def query_show_list(query: types.CallbackQuery, callback_data: dict, state
 async def query_show_list(query: types.CallbackQuery, callback_data: dict):
     id = callback_data['id']
     print("!!!!!!!!!!!!!!nashata trans!!!!!!!!!!!!!!!!")
-    await query.message.edit_text("*Трансформации*", parse_mode = 'Markdown', reply_markup = await get_variete_pokList_keyboard(id))
+    await query.bot.edit_message_reply_markup(message_id=query.message_id,reply_markup = await get_variete_pokList_keyboard(id))
 
 
 @dp.callback_query_handler(into_cb.filter(into_cb='evol'))
@@ -95,7 +99,10 @@ async def query_show_list(query: types.CallbackQuery, callback_data: dict):
     await query.message.edit_text("*Еволюлии:*", parse_mode = 'Markdown', reply_markup = await get_evolution_keyboard(callback_data['id']))
 
 
+
+
 ###########################################################################
+
 
 
 
@@ -106,8 +113,7 @@ async def get_back_keyboard(state: FSMContext) -> list:
             backListBut.append(types.InlineKeyboardButton("Назад", callback_data=pokemon_cb.new(id=data['StorageList'][-2], action='page',Del = "yes")))
         else:
             backListBut.append(types.InlineKeyboardButton("Назад", callback_data=pokemon_cb.new(id=data['StorageList'][-2], action='view',Del = "yes")))
-        backListBut.append(types.InlineKeyboardButton("В список", callback_data = 'InList'))
-    print("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!SSSSSSSSSSSSSSS")
+        backListBut.append(types.InlineKeyboardButton("В список", callback_data = pokemon_cb.new(id=data['StorageList'][0], action='page',Del = "yes")))
     print(backListBut)
     return backListBut
 
